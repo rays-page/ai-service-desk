@@ -34,7 +34,7 @@ export default async function PipelinePage() {
                               {lead.urgency}
                             </span>
                           </div>
-                          <p className="mt-2 text-sm text-ink/58">{lead.contact?.name ?? "Unknown"} · {shortTime(lead.last_activity_at)}</p>
+                          <p className="mt-2 text-sm text-ink/58">{lead.contact?.name ?? "Unknown"} | {shortTime(lead.last_activity_at)}</p>
                         </Link>
                         <form action={updateLeadStageAction} className="mt-3 flex items-center gap-2">
                           <input type="hidden" name="lead_id" value={lead.id} />

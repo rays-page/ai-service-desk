@@ -26,5 +26,18 @@ export const leadAiRequestSchema = z.object({
   lead_id: z.string().uuid()
 });
 
+export const signUpSchema = z.object({
+  full_name: z.string().trim().min(2).max(120),
+  email: z.string().trim().email(),
+  password: z.string().min(8).max(72),
+  business_name: z.string().trim().min(2).max(120),
+  service_category: z.string().trim().min(2).max(120)
+});
+
+export const workspaceSetupSchema = signUpSchema.pick({
+  business_name: true,
+  service_category: true
+});
+
 export type LeadFormInput = z.infer<typeof leadFormSchema>;
 export type TwilioInboundInput = z.infer<typeof twilioInboundSchema>;

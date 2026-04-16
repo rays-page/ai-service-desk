@@ -4,10 +4,11 @@ import { cookies } from "next/headers";
 import { createServerClient } from "@supabase/ssr";
 import type { SetAllCookies } from "@supabase/ssr/dist/main/types";
 import { hasSupabaseEnv } from "@/lib/env";
+import { AppConfigError } from "@/lib/errors";
 
 export async function createServerSupabaseClient() {
   if (!hasSupabaseEnv) {
-    throw new Error("Supabase environment variables are not configured.");
+    throw new AppConfigError("Supabase environment variables are not configured.");
   }
 
   const cookieStore = await cookies();

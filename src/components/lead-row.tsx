@@ -27,7 +27,7 @@ export function LeadRow({ lead }: { lead: Lead }) {
       </div>
       <div className="text-sm">
         <p className="font-medium">{lead.stage?.name ?? "No stage"}</p>
-        <p className="mt-1 text-ink/55">{sourceLabel(lead.source)} · {shortTime(lead.last_activity_at)}</p>
+        <p className="mt-1 text-ink/55">{sourceLabel(lead.source)} | {shortTime(lead.last_activity_at)}</p>
       </div>
       <div className="flex items-center justify-end text-ink/40">
         <ArrowRight className="h-4 w-4" aria-hidden="true" />

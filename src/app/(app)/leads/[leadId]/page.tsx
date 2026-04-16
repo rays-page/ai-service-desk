@@ -38,7 +38,7 @@ export default async function LeadDetailPage({ params }: { params: Promise<{ lea
     <>
       <PageHeader
         title={lead.title}
-        eyebrow={`${sourceLabel(lead.source)} lead · ${lead.stage?.name ?? "No stage"}`}
+        eyebrow={`${sourceLabel(lead.source)} lead | ${lead.stage?.name ?? "No stage"}`}
         action={
           <Link href="/inbox" className="button-secondary">
             <ArrowLeft className="h-4 w-4" aria-hidden="true" />

@@ -14,6 +14,17 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     if (!user) {
       redirect("/login");
     }
+
+    const { data: membership } = await supabase
+      .from("business_memberships")
+      .select("business_id")
+      .eq("user_id", user.id)
+      .limit(1)
+      .maybeSingle();
+
+    if (!membership) {
+      redirect("/setup");
+    }
   }
 
   const workspace = await getWorkspaceData();

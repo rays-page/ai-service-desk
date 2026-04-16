@@ -3,7 +3,18 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isDemoMode } from "@/lib/env";
+import { getErrorMessage } from "@/lib/errors";
+import { provisionWorkspaceForUser } from "@/lib/onboarding";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { signUpSchema, workspaceSetupSchema } from "@/lib/validation";
+
+function firstValidationMessage(error: { flatten: () => { fieldErrors: Record<string, string[] | undefined> } }) {
+  for (const messages of Object.values(error.flatten().fieldErrors)) {
+    if (messages?.[0]) return messages[0];
+  }
+
+  return "Please review the highlighted fields and try again.";
+}
 
 export async function signInAction(formData: FormData) {
   if (isDemoMode) {
@@ -13,10 +24,26 @@ export async function signInAction(formData: FormData) {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  const {
+    data: { user },
+    error
+  } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  const { data: membership } = user
+    ? await supabase
+        .from("business_memberships")
+        .select("business_id")
+        .eq("user_id", user.id)
+        .limit(1)
+        .maybeSingle()
+    : { data: null };
+
+  if (user && !membership) {
+    redirect("/setup");
   }
 
   redirect("/dashboard");
@@ -27,11 +54,21 @@ export async function signUpAction(formData: FormData) {
     redirect("/dashboard");
   }
 
-  const email = String(formData.get("email") ?? "");
-  const password = String(formData.get("password") ?? "");
-  const fullName = String(formData.get("full_name") ?? "");
+  const parsed = signUpSchema.safeParse({
+    full_name: String(formData.get("full_name") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+    business_name: String(formData.get("business_name") ?? ""),
+    service_category: String(formData.get("service_category") ?? "")
+  });
+
+  if (!parsed.success) {
+    redirect(`/login?error=${encodeURIComponent(firstValidationMessage(parsed.error))}`);
+  }
+
+  const { email, password, full_name: fullName, business_name: businessName, service_category: serviceCategory } = parsed.data;
   const supabase = await createServerSupabaseClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -43,7 +80,35 @@ export async function signUpAction(formData: FormData) {
     redirect(`/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/dashboard");
+  if (!data.user) {
+    redirect("/login?error=Account creation did not return a user record.");
+  }
+
+  try {
+    await provisionWorkspaceForUser({
+      userId: data.user.id,
+      fullName,
+      email,
+      businessName,
+      serviceCategory
+    });
+  } catch (error) {
+    const message = getErrorMessage(error, "Workspace setup failed.");
+
+    if (data.session) {
+      redirect(`/setup?error=${encodeURIComponent(message)}`);
+    }
+
+    redirect(
+      `/login?error=${encodeURIComponent("Account created, but workspace setup did not finish. Sign in and complete setup.")}`
+    );
+  }
+
+  if (data.session) {
+    redirect("/dashboard");
+  }
+
+  redirect("/login?message=Account created. Check your email, then sign in to open your workspace.");
 }
 
 export async function signOutAction() {
@@ -102,7 +167,10 @@ export async function updateLeadStageAction(formData: FormData) {
     changed_by: user?.id ?? null
   });
 
-  revalidatePath("/");
+  revalidatePath("/dashboard");
+  revalidatePath("/inbox");
+  revalidatePath("/pipeline");
+  revalidatePath(`/leads/${leadId}`);
 }
 
 export async function completeTaskAction(formData: FormData) {
@@ -157,6 +225,7 @@ export async function addNoteAction(formData: FormData) {
   if (error) throw new Error(error.message);
 
   revalidatePath(`/leads/${leadId}`);
+  revalidatePath("/inbox");
 }
 
 export async function recordOutboundReplyAction(formData: FormData) {
@@ -234,6 +303,7 @@ export async function recordOutboundReplyAction(formData: FormData) {
 
   revalidatePath(`/leads/${leadId}`);
   revalidatePath("/dashboard");
+  revalidatePath("/inbox");
   revalidatePath("/pipeline");
 }
 
@@ -259,14 +329,31 @@ export async function updateSettingsAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("AUTH_REQUIRED");
+  }
+
   const { data: membership, error: membershipError } = await supabase
     .from("business_memberships")
     .select("business_id")
     .eq("business_id", businessId)
+    .eq("user_id", user.id)
     .maybeSingle();
 
   if (membershipError || !membership) {
     throw new Error("Current user is not a member of this business.");
+  }
+
+  if (!Number.isFinite(followUpNewHours) || followUpNewHours < 1 || followUpNewHours > 168) {
+    throw new Error("New lead follow-up hours must be between 1 and 168.");
+  }
+
+  if (!Number.isFinite(followUpContactedDays) || followUpContactedDays < 1 || followUpContactedDays > 30) {
+    throw new Error("Contacted follow-up days must be between 1 and 30.");
   }
 
   const { error } = await supabase
@@ -285,4 +372,44 @@ export async function updateSettingsAction(formData: FormData) {
 
   revalidatePath("/settings");
   revalidatePath("/dashboard");
+}
+
+export async function completeWorkspaceSetupAction(formData: FormData) {
+  if (isDemoMode) {
+    redirect("/dashboard");
+  }
+
+  const parsed = workspaceSetupSchema.safeParse({
+    business_name: String(formData.get("business_name") ?? ""),
+    service_category: String(formData.get("service_category") ?? "")
+  });
+
+  if (!parsed.success) {
+    redirect(`/setup?error=${encodeURIComponent(firstValidationMessage(parsed.error))}`);
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
+  try {
+    await provisionWorkspaceForUser({
+      userId: user.id,
+      fullName: String(user.user_metadata.full_name ?? user.email?.split("@")[0] ?? "Owner"),
+      email: user.email ?? "",
+      businessName: parsed.data.business_name,
+      serviceCategory: parsed.data.service_category
+    });
+  } catch (error) {
+    redirect(`/setup?error=${encodeURIComponent(getErrorMessage(error, "Workspace setup failed."))}`);
+  }
+
+  revalidatePath("/dashboard");
+  revalidatePath("/settings");
+  redirect("/dashboard");
 }

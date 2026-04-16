@@ -282,7 +282,16 @@ export async function resolveTwilioBusinessSlug(payload: TwilioInboundInput) {
 
   const businessRecord = Array.isArray(data?.businesses) ? data.businesses[0] : data?.businesses;
   const business = businessRecord as { public_slug?: string } | null | undefined;
-  return business?.public_slug || process.env.TWILIO_DEFAULT_BUSINESS_SLUG || "demo-service-co";
+
+  if (business?.public_slug) {
+    return business.public_slug;
+  }
+
+  if (process.env.TWILIO_DEFAULT_BUSINESS_SLUG) {
+    return process.env.TWILIO_DEFAULT_BUSINESS_SLUG;
+  }
+
+  throw new Error("No business is configured for the inbound Twilio destination.");
 }
 
 export function mapTwilioInputToIntake(input: TwilioInboundInput, businessSlug: string): IntakeInput {

@@ -1,11 +1,12 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import { AppConfigError } from "@/lib/errors";
 import { hasSupabaseAdminEnv } from "@/lib/env";
 
 export function createAdminSupabaseClient() {
   if (!hasSupabaseAdminEnv) {
-    throw new Error("Supabase admin environment variables are not configured.");
+    throw new AppConfigError("Supabase admin environment variables are not configured.");
   }
 
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {

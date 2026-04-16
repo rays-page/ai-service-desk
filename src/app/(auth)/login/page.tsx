@@ -5,7 +5,7 @@ import { isDemoMode } from "@/lib/env";
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams?: Promise<{ error?: string }> | { error?: string };
+  searchParams?: Promise<{ error?: string; message?: string }> | { error?: string; message?: string };
 }) {
   const params = searchParams ? await searchParams : {};
 
@@ -47,6 +47,13 @@ export default async function LoginPage({
               </div>
             ) : null}
 
+            {params?.message ? (
+              <div className="mt-5 flex gap-2 rounded-md border border-moss/25 bg-moss/10 p-3 text-sm text-moss">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                {params.message}
+              </div>
+            ) : null}
+
             <form action={signInAction} className="mt-6 space-y-4">
               <label className="block text-sm font-medium">
                 Email
@@ -65,10 +72,14 @@ export default async function LoginPage({
             <form action={signUpAction} className="mt-8 border-t border-line pt-6">
               <p className="text-sm font-medium">Create first account</p>
               <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <input className="field" name="full_name" placeholder="Full name" />
-                <input className="field" name="email" type="email" placeholder="Email" />
+                <input className="field" name="full_name" placeholder="Full name" required />
+                <input className="field" name="email" type="email" placeholder="Email" required />
               </div>
-              <input className="field mt-3" name="password" type="password" placeholder="Password" />
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <input className="field" name="business_name" placeholder="Business name" required />
+                <input className="field" name="service_category" placeholder="Service category" defaultValue="Home services" required />
+              </div>
+              <input className="field mt-3" name="password" type="password" placeholder="Password" minLength={8} required />
               <button className="button-secondary mt-3 w-full">
                 <UserPlus className="h-4 w-4" aria-hidden="true" />
                 Sign up

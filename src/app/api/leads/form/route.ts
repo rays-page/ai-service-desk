@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getErrorMessage, isAppConfigError } from "@/lib/errors";
 import { createLeadFromInbound, mapFormInputToIntake } from "@/lib/intake";
 import { leadFormSchema } from "@/lib/validation";
 
@@ -15,8 +16,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ lead_id: result.lead.id, conversation_id: result.conversation.id }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Lead intake failed" },
-      { status: 500 }
+      { error: getErrorMessage(error, "Lead intake failed") },
+      { status: isAppConfigError(error) ? 503 : 500 }
     );
   }
 }
