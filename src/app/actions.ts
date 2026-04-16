@@ -6,7 +6,8 @@ import { isDemoMode } from "@/lib/env";
 import { getErrorMessage } from "@/lib/errors";
 import { provisionWorkspaceForUser } from "@/lib/onboarding";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { signUpSchema, workspaceSetupSchema } from "@/lib/validation";
+import { getTwilioInboundWebhookUrl, normalizeTwilioPhoneNumber } from "@/lib/twilio";
+import { signUpSchema, twilioSettingsSchema, workspaceSetupSchema } from "@/lib/validation";
 
 function firstValidationMessage(error: { flatten: () => { fieldErrors: Record<string, string[] | undefined> } }) {
   for (const messages of Object.values(error.flatten().fieldErrors)) {
@@ -14,6 +15,29 @@ function firstValidationMessage(error: { flatten: () => { fieldErrors: Record<st
   }
 
   return "Please review the highlighted fields and try again.";
+}
+
+async function requireCurrentBusinessId(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>) {
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("AUTH_REQUIRED");
+  }
+
+  const { data: membership, error } = await supabase
+    .from("business_memberships")
+    .select("business_id")
+    .eq("user_id", user.id)
+    .limit(1)
+    .maybeSingle();
+
+  if (error || !membership) {
+    throw new Error("Current user is not assigned to a business.");
+  }
+
+  return membership.business_id;
 }
 
 export async function signInAction(formData: FormData) {
@@ -313,7 +337,6 @@ export async function updateSettingsAction(formData: FormData) {
     return;
   }
 
-  const businessId = String(formData.get("business_id") ?? "");
   const name = String(formData.get("name") ?? "");
   const primaryPhone = String(formData.get("primary_phone") ?? "");
   const primaryEmail = String(formData.get("primary_email") ?? "");
@@ -329,24 +352,7 @@ export async function updateSettingsAction(formData: FormData) {
   }
 
   const supabase = await createServerSupabaseClient();
-  const {
-    data: { user }
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    throw new Error("AUTH_REQUIRED");
-  }
-
-  const { data: membership, error: membershipError } = await supabase
-    .from("business_memberships")
-    .select("business_id")
-    .eq("business_id", businessId)
-    .eq("user_id", user.id)
-    .maybeSingle();
-
-  if (membershipError || !membership) {
-    throw new Error("Current user is not a member of this business.");
-  }
+  const businessId = await requireCurrentBusinessId(supabase);
 
   if (!Number.isFinite(followUpNewHours) || followUpNewHours < 1 || followUpNewHours > 168) {
     throw new Error("New lead follow-up hours must be between 1 and 168.");
@@ -367,6 +373,69 @@ export async function updateSettingsAction(formData: FormData) {
       follow_up_contacted_days: followUpContactedDays
     })
     .eq("id", businessId);
+
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/settings");
+  revalidatePath("/dashboard");
+}
+
+export async function updateTwilioSettingsAction(formData: FormData) {
+  if (isDemoMode) {
+    revalidatePath("/settings");
+    return;
+  }
+
+  const parsed = twilioSettingsSchema.safeParse({
+    phone_number: String(formData.get("phone_number") ?? "")
+  });
+
+  if (!parsed.success) {
+    throw new Error(firstValidationMessage(parsed.error));
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const businessId = await requireCurrentBusinessId(supabase);
+  const phoneNumber = normalizeTwilioPhoneNumber(parsed.data.phone_number);
+  const { data: existingIntegration, error: existingIntegrationError } = await supabase
+    .from("integration_settings")
+    .select("config")
+    .eq("business_id", businessId)
+    .eq("provider", "twilio_sms")
+    .maybeSingle();
+
+  if (existingIntegrationError) {
+    throw new Error(existingIntegrationError.message);
+  }
+
+  const config =
+    existingIntegration?.config && typeof existingIntegration.config === "object" ? { ...existingIntegration.config } : {};
+
+  if (phoneNumber) {
+    config.phone_number = phoneNumber;
+    config.phone_number_normalized = phoneNumber;
+  } else {
+    delete config.phone_number;
+    delete config.phone_number_normalized;
+  }
+
+  const webhookUrl = getTwilioInboundWebhookUrl();
+  const status = !phoneNumber
+    ? "needs_configuration"
+    : process.env.TWILIO_AUTH_TOKEN && webhookUrl
+      ? "healthy"
+      : "needs_attention";
+
+  const { error } = await supabase.from("integration_settings").upsert(
+    {
+      business_id: businessId,
+      provider: "twilio_sms",
+      status,
+      config,
+      last_checked_at: new Date().toISOString()
+    },
+    { onConflict: "business_id,provider" }
+  );
 
   if (error) throw new Error(error.message);
 

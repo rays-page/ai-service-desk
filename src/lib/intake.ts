@@ -2,6 +2,7 @@ import "server-only";
 
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { generateLeadIntelligence } from "@/lib/ai/service";
+import { normalizeTwilioPhoneNumber, readTwilioIntegrationConfig } from "@/lib/twilio";
 import type { LeadFormInput, TwilioInboundInput } from "@/lib/validation";
 
 type InboundSource = "form" | "sms" | "email_stub";
@@ -273,14 +274,30 @@ export function mapFormInputToIntake(input: LeadFormInput): IntakeInput {
 
 export async function resolveTwilioBusinessSlug(payload: TwilioInboundInput) {
   const supabase = createAdminSupabaseClient();
-  const { data } = await supabase
+  const normalizedDestination = normalizeTwilioPhoneNumber(payload.To);
+  const { data, error } = await supabase
     .from("integration_settings")
-    .select("businesses(public_slug)")
+    .select("config,businesses(public_slug)")
     .eq("provider", "twilio_sms")
-    .contains("config", { phone_number: payload.To })
-    .maybeSingle();
+    .order("updated_at", { ascending: false });
 
-  const businessRecord = Array.isArray(data?.businesses) ? data.businesses[0] : data?.businesses;
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  const match = (data ?? []).find((setting) => {
+    const config = readTwilioIntegrationConfig(setting.config);
+    const configuredPhone = config.phone_number_normalized ?? config.phone_number;
+    if (!configuredPhone) return false;
+
+    try {
+      return normalizeTwilioPhoneNumber(configuredPhone) === normalizedDestination;
+    } catch {
+      return false;
+    }
+  });
+
+  const businessRecord = Array.isArray(match?.businesses) ? match.businesses[0] : match?.businesses;
   const business = businessRecord as { public_slug?: string } | null | undefined;
 
   if (business?.public_slug) {

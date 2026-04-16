@@ -56,13 +56,19 @@ If Supabase environment variables are missing, the app renders the operator cons
 
 ## Twilio Setup
 
-Configure your Twilio Messaging webhook to `POST` to:
+Save the Twilio business number in Settings, then configure your Twilio Messaging webhook to `POST` to:
 
 ```text
 https://your-domain.com/api/twilio/inbound
 ```
 
-The route expects `application/x-www-form-urlencoded`, validates the Twilio request signature when `TWILIO_AUTH_TOKEN` is set, and returns valid TwiML.
+Recommended environment values for a real deployment:
+
+- `NEXT_PUBLIC_APP_URL`: the public base URL of the app, used to generate the webhook URL shown in Settings
+- `TWILIO_AUTH_TOKEN`: enables Twilio signature validation on inbound requests
+- `TWILIO_WEBHOOK_URL`: optional exact override when Twilio reaches the app through a different public URL than `NEXT_PUBLIC_APP_URL`
+
+The route expects `application/x-www-form-urlencoded`, maps inbound SMS to a business through the saved Twilio number, validates the Twilio request signature when `TWILIO_AUTH_TOKEN` is set, and returns valid TwiML.
 
 ## Follow-Up Job
 

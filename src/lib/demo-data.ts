@@ -372,8 +372,8 @@ export const demoIntegrations: IntegrationSetting[] = [
     id: "integration-twilio",
     business_id: demoBusiness.id,
     provider: "twilio_sms",
-    status: "needs_configuration",
-    config: { phone_number: "+13125550100" },
+    status: "needs_attention",
+    config: { phone_number: "+13125550100", phone_number_normalized: "+13125550100" },
     last_checked_at: hoursAgo(2)
   },
   {

@@ -4,13 +4,14 @@ import {
   mapTwilioInputToIntake,
   resolveTwilioBusinessSlug
 } from "@/lib/intake";
+import { getTwilioInboundWebhookUrl } from "@/lib/twilio";
 import { twilioInboundSchema } from "@/lib/validation";
 
 export async function POST(request: Request) {
   const rawBody = await request.text();
   const params = Object.fromEntries(new URLSearchParams(rawBody).entries());
   const signature = request.headers.get("x-twilio-signature") ?? "";
-  const webhookUrl = process.env.TWILIO_WEBHOOK_URL || request.url;
+  const webhookUrl = getTwilioInboundWebhookUrl(request.url) ?? request.url;
 
   if (process.env.TWILIO_AUTH_TOKEN) {
     const valid = twilio.validateRequest(process.env.TWILIO_AUTH_TOKEN, signature, webhookUrl, params);

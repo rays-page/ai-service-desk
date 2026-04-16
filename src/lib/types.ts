@@ -130,6 +130,13 @@ export type IntegrationSetting = {
   last_checked_at?: string | null;
 };
 
+export type TwilioIntegrationConfig = {
+  phone_number?: string;
+  phone_number_normalized?: string;
+};
+
+export type TwilioSetupStatus = "healthy" | "needs_attention" | "needs_configuration";
+
 export type WorkspaceData = {
   business: Business;
   stages: PipelineStage[];

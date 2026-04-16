@@ -39,5 +39,9 @@ export const workspaceSetupSchema = signUpSchema.pick({
   service_category: true
 });
 
+export const twilioSettingsSchema = z.object({
+  phone_number: z.string().trim().max(40).optional().default("")
+});
+
 export type LeadFormInput = z.infer<typeof leadFormSchema>;
 export type TwilioInboundInput = z.infer<typeof twilioInboundSchema>;
