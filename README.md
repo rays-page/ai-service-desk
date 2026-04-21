@@ -4,6 +4,15 @@ AI Service Desk is an AI-assisted service desk MVP for small home-service busine
 
 It captures inbound leads from web forms and SMS, turns raw conversations into structured records, suggests the first reply, tracks pipeline state, and creates follow-up tasks when leads go stale. The product is intentionally narrow: intake, response, tracking, and follow-up instead of a broad "AI for everything" platform.
 
+## Preview
+
+<table>
+  <tr>
+    <td width="62%"><img src="docs/readme/ai-service-desk-dashboard.png" alt="AI Service Desk dashboard screenshot"></td>
+    <td width="38%"><img src="docs/readme/ai-service-desk-graphic.png" alt="AI Service Desk abstract graphic"></td>
+  </tr>
+</table>
+
 ## What This Repo Demonstrates
 
 - Web and SMS lead intake in a single operator workflow
