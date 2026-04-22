@@ -6,12 +6,7 @@ It captures inbound leads from web forms and SMS, turns raw conversations into s
 
 ## Preview
 
-<table>
-  <tr>
-    <td width="62%"><img src="docs/readme/ai-service-desk-dashboard.png" alt="AI Service Desk dashboard screenshot"></td>
-    <td width="38%"><img src="docs/readme/ai-service-desk-colorfield.png" alt="AI Service Desk abstract graphic"></td>
-  </tr>
-</table>
+![AI Service Desk dashboard screenshot](docs/readme/ai-service-desk-dashboard.png)
 
 ## What This Repo Demonstrates
 
