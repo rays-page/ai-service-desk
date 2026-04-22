@@ -5,7 +5,11 @@ export async function POST(request: Request) {
   const expectedSecret = process.env.CRON_SECRET;
   const receivedSecret = request.headers.get("x-cron-secret");
 
-  if (expectedSecret && receivedSecret !== expectedSecret) {
+  if (!expectedSecret) {
+    return NextResponse.json({ error: "CRON_SECRET is not configured" }, { status: 503 });
+  }
+
+  if (receivedSecret !== expectedSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

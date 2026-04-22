@@ -34,7 +34,7 @@ Use this pass to confirm the operator console works as a product, not just as a 
 Expected results:
 
 - `/` redirects into the app shell.
-- All core routes return `200`.
+- Core routes either render successfully or redirect intentionally.
 - The shell stays intact while content changes by route.
 
 ### 2. Dashboard
@@ -146,7 +146,8 @@ Failure criteria:
 
 - Invalid payload returns `400`.
 - Missing lead returns `404`.
-- AI or storage failure returns a non-2xx response and logs to `audit_log`.
+- AI failure returns `502` and logs to `audit_log`.
+- Database read or write failure returns a non-2xx response.
 
 ### `POST /api/ai/suggest-reply`
 
@@ -189,6 +190,22 @@ Expected results:
 - Writes survive refresh and reload.
 - Business scoping remains correct.
 - External integrations succeed without manual data repair.
+
+## Security and Isolation Checks
+
+Run this pass after the live-stack flow so auth, RLS, and trust boundaries are checked deliberately instead of being inferred from happy-path behavior.
+
+1. Sign in as a user without a membership and confirm no business data is returned.
+2. Attempt to move a lead into another business's stage and confirm the server rejects it.
+3. Confirm browser bundles only use `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY`.
+4. Confirm public intake accepts only `business_slug` and never trusts a client-supplied `business_id`.
+
+Expected results:
+
+- Unauthorized or out-of-scope reads return an empty/blocked experience instead of cross-business data.
+- Cross-business stage updates are rejected by the server.
+- Browser bundles do not expose service-role credentials.
+- Public intake boundaries stay on external identifiers only.
 
 ## Findings Triage
 
