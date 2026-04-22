@@ -17,6 +17,13 @@ It captures inbound leads from web forms and SMS, turns raw conversations into s
 - Follow-up automation for stale leads
 - Demo-first local development with no required backend to view the app shell
 
+## Why This Maps To Digital Forms And Workflow Work
+
+- The intake layer is schema-validated with typed request handling instead of trusting raw client payloads.
+- The product is organized around form and message workflows: capture, normalize, review, respond, track, and follow up.
+- External integrations stay narrow and operational: Supabase for auth/data, Twilio for inbound SMS, and OpenAI for constrained enrichment.
+- The operator UI is built in React and Next.js around the exact work an internal team would need to review submissions and resolve issues.
+
 ## 60-Second Demo
 
 1. Install dependencies:
@@ -75,6 +82,12 @@ npm run dev
 ## Verification
 
 Use [docs/test-plan.md](docs/test-plan.md) for the smoke checklist, API verification matrix, and live-stack walkthrough.
+
+For a Windows-safe local validation pass on this machine, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-local.ps1
+```
 
 ## Required Endpoints
 

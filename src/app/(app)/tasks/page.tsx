@@ -9,7 +9,7 @@ import { isOverdue } from "@/lib/utils";
 export default async function TasksPage({
   searchParams
 }: {
-  searchParams?: Promise<{ view?: string }> | { view?: string };
+  searchParams?: Promise<{ view?: string }>;
 }) {
   const params = searchParams ? await searchParams : {};
   const workspace = await getWorkspaceData();

@@ -8,7 +8,7 @@ import { getWorkspaceData } from "@/lib/data";
 export default async function InboxPage({
   searchParams
 }: {
-  searchParams?: Promise<Record<string, string | undefined>> | Record<string, string | undefined>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 }) {
   const params = searchParams ? await searchParams : {};
   const workspace = await getWorkspaceData();

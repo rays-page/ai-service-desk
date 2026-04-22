@@ -5,7 +5,7 @@ import { isDemoMode } from "@/lib/env";
 export default async function LoginPage({
   searchParams
 }: {
-  searchParams?: Promise<{ error?: string }> | { error?: string };
+  searchParams?: Promise<{ error?: string }>;
 }) {
   const params = searchParams ? await searchParams : {};
 

@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/page-header";
 import { getLeadDetail } from "@/lib/data";
 import { cn, shortTime, sourceLabel, urgencyClasses } from "@/lib/utils";
 
-export default async function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> | { leadId: string } }) {
+export default async function LeadDetailPage({ params }: { params: Promise<{ leadId: string }> }) {
   const { leadId } = await params;
   const { workspace, lead, messages, notes } = await getLeadDetail(leadId);
 
