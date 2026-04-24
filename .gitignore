@@ -2,11 +2,15 @@
 node_modules/
 out/
 .env
+.env.*
+!.env.example
 .env*.local
 .vercel/
 .turbo/
 coverage/
 dist/
+.cache/
+.pytest_cache/
 .tools/
 *.log
 *.tsbuildinfo
