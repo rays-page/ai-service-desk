@@ -29,7 +29,7 @@ It captures inbound leads from web forms and SMS, turns raw conversations into s
 1. Install dependencies:
 
 ```powershell
-npm install
+npm ci
 ```
 
 2. Start the app:
@@ -75,7 +75,7 @@ API routes that write or synchronize real data still require backend credentials
 6. Install and run:
 
 ```powershell
-npm install
+npm ci
 npm run dev
 ```
 
@@ -83,7 +83,13 @@ npm run dev
 
 Use [docs/test-plan.md](docs/test-plan.md) for the smoke checklist, API verification matrix, and live-stack walkthrough.
 
-For a Windows-safe local validation pass on this machine, run:
+For the standard repo validation pass, run:
+
+```powershell
+npm run check
+```
+
+For a Windows-safe local validation helper after dependencies are installed, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\check-local.ps1
@@ -142,4 +148,4 @@ In production, call the same route from Supabase Cron, a scheduled Edge Function
 
 This repo defaults to `webpack` in local development because Turbopack is currently unstable on this Windows setup.
 
-If Node is not installed globally on this machine, a bundled runtime is available in `.tools/node-v24.14.1-win-x64/`.
+This repo expects Node.js to be installed locally. Local-only tool folders are intentionally ignored.
